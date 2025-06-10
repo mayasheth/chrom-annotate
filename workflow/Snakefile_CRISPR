@@ -1,0 +1,405 @@
+import yaml 
+import json
+import os
+import pandas as pd
+
+conda: "mamba"
+
+# get useful vars from config
+RESULTS_DIR = config["results_dir"]
+SCRATCH_DIR = os.path.join(config["scratch_dir"], os.path.basename(RESULTS_DIR))
+
+
+enh_plus = expand(os.path.join(RESULTS_DIR, "{cell_type}", "EnhancerList.extended.tsv"), cell_type = config["pred_cell_types"])
+crispr_plus = expand(os.path.join(RESULTS_DIR, "CRISPR_data", "{data_cat}.extended.tsv"), data_cat = config["CRISPR_benchmark"])
+bivalent_out = expand(os.path.join(RESULTS_DIR, "{cell_type}", "annotated_H3K27me3_peaks.tsv.gz"), cell_type = config["pred_cell_types"])
+
+output_files = []
+output_files.append(enh_plus)
+output_files.append(crispr_plus)
+
+if ("H3K27me3" in config["peak_overlap_assays"]) and ("H3K4me1" in config["RPM_assays"]):
+	output_files.append(bivalent_out)
+	
+rule all:
+	input:
+		output_files
+
+### FUNCTIONS
+# basically allow matching of other cell types to WTC11
+def get_data_cell_type(crispr_cell_type):
+	if crispr_cell_type == "WTC11":
+		return config["WTC11_cell_type"]
+	else:
+		return crispr_cell_type
+
+### RULES
+# return list of candidate elements overlapping peaks for this assay 
+rule make_chr_sizes_bed:
+	input:
+		config["chr_sizes"]
+	output: 
+		os.path.join(SCRATCH_DIR, "chr_sizes.bed")
+	resources:
+		mem_mb=1*1000,
+		runtime = 10
+	shell:
+		"""
+			awk 'BEGIN {{OFS="\t"}} {{if (NF > 0) print $1,"0",$2 ; else print $0}}' {input} > {output}
+		"""
+
+# split crispr data by cell type and get candidate elements for each 
+rule split_crispr_data:
+	input:
+		crispr = lambda wildcards: config["CRISPR_benchmark"][wildcards.data_cat]
+	params:
+		chr_col = lambda wildcards: config["chr_columns"][wildcards.data_cat],
+		start_col = lambda wildcards: config["start_columns"][wildcards.data_cat],
+		end_col = lambda wildcards: config["end_columns"][wildcards.data_cat],
+		ct_col = lambda wildcards: config["cell_type_columns"][wildcards.data_cat]
+	output:
+		crispr_subset = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "cell_type_subset.tsv.gz"),
+		crispr_elements = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "tested_elements.bed4")
+	resources:
+		mem_mb=32*1000,
+		runtime = 60
+	shell:
+		"""
+			set +o pipefail;
+
+			col_number=$(zcat {input.crispr} | head -n 1 | tr '\t' '\n' | nl -v 1 | grep -w "{params.ct_col}" | awk '{{print $1}}')
+			zcat {input.crispr} | head -n 1 | gzip > {output.crispr_subset}
+			
+			zcat {input.crispr} | awk -F'\t' -v col=$col_number '$col == "{wildcards.crispr_cell_type}" {{print $0}}' | \
+				gzip >> {output.crispr_subset}
+
+			zcat {output.crispr_subset} | csvtk cut -t -f {params.chr_col},{params.start_col},{params.end_col} | \
+				sed 1d | sort -k1,1 -k2,2n | uniq | \
+				awk -F'\t' 'BEGIN {{OFS="\t"}} {{print $0, $1 ":" $2 "-" $3}}' > {output.crispr_elements}
+
+		"""
+
+# input is bed4; output is has resized coordinates BUT original name 
+rule resize_prediction_elements:
+	input:
+		enh_bed = lambda wildcards: os.path.join(config[wildcards.cell_type]["E2G_results"], "Neighborhoods", "EnhancerList.bed")
+	params:
+		pred_trim_size = config["pred_trim_size"]
+	output:
+		enh_resized_bed = os.path.join(SCRATCH_DIR, "{cell_type}", "resized_candidate_elements.bed")
+	resources:
+		mem_mb=8*1000,
+		runtime = 30
+	shell:
+		"""
+			awk 'BEGIN {{OFS="\t"}} {{ 
+        		col1=$1; col2=$2 + {params.pred_trim_size}; col3=$3 - {params.pred_trim_size};
+        		print $1, col2, col3, $4
+        	}}' {input.enh_bed} > {output.enh_resized_bed}
+
+		"""
+
+
+# outputs original name of prediction ovelrapping peak
+rule get_peak_overlap_predictions:
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "{cell_type}", "resized_candidate_elements.bed"),
+		bed_file = lambda wildcards: config[wildcards.cell_type]["bed"][wildcards.assay]
+	params:
+		peak_ext = lambda wildcards: config["peak_ext_size"][wildcards.assay],
+		chr_sizes = config["chr_sizes"]
+	output:
+		interm_peaks = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "peaks.bed"), 
+		this_overlap = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "peak_overlap.txt")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb = 32*1000,
+		runtime = 30
+	shell:
+		"""
+			if [[ {input.bed_file} == *.gz ]]
+			then
+				zcat {input.bed_file} | cut -f 1-3 | bedtools slop -b {params.peak_ext} -g {params.chr_sizes} | sort -k1,1 -k2,2n > {output.interm_peaks}
+			else
+				cat {input.bed_file} | cut -f 1-3 | bedtools slop -b {params.peak_ext} -g {params.chr_sizes} | sort -k1,1 -k2,2n > {output.interm_peaks}
+			fi
+			
+			bedtools intersect -wa -a {input.enh_bed} -b {output.interm_peaks} | \
+				cut -f4 > {output.this_overlap}
+		"""
+
+rule get_peak_overlap_crispr:
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "tested_elements.bed4"),
+		bed_file = lambda wildcards: config[get_data_cell_type(wildcards.crispr_cell_type)]["bed"][wildcards.assay]
+	params:
+		peak_ext = lambda wildcards: config["peak_ext_size"][wildcards.assay],
+		chr_sizes = config["chr_sizes"]
+	output:
+		interm_peaks = temp(os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "peaks.bed")), 
+		this_overlap = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "peak_overlap.txt")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb = 32*1000,
+		runtime = 30
+	shell:
+		"""
+			if [[ {input.bed_file} == *.gz ]]
+			then
+				zcat {input.bed_file} | cut -f 1-3 | bedtools slop -b {params.peak_ext} -g {params.chr_sizes} | \
+				sort -k1,1 -k2,2n > {output.interm_peaks}
+			else
+				cat {input.bed_file} | cut -f 1-3 | bedtools slop -b {params.peak_ext} -g {params.chr_sizes} | \
+				sort -k1,1 -k2,2n > {output.interm_peaks}
+			fi
+			
+			bedtools intersect -wa -a {input.enh_bed} -b {output.interm_peaks} | \
+				cut -f4 > {output.this_overlap}
+		"""
+
+# output is bed4 with trim + expansion applied; name is original
+rule expand_candidate_elements_predictions: 
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "{cell_type}", "resized_candidate_elements.bed")
+	params:
+		pred_ext = config["pred_ext_size"],
+		chr_sizes = config["chr_sizes"]
+	output:
+		enh_expanded = os.path.join(SCRATCH_DIR, "{cell_type}", "EnhancerList.expanded.bed4")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb = 32*1000,
+		runtime = 30
+	shell:
+		"""
+			cat {input.enh_bed} | bedtools slop -b {params.pred_ext} -g {params.chr_sizes} > {output.enh_expanded}
+		"""
+
+rule expand_candidate_elements_crispr: 
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "tested_elements.bed4"),
+	params:
+		pred_ext = config["pred_ext_size"],
+		chr_sizes = config["chr_sizes"]
+	output:
+		enh_expanded = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "tested_elements.expanded.bed4")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb = 32*1000,
+		runtime = 30
+	shell:
+		"""
+			cat {input.enh_bed} | bedtools slop -b {params.pred_ext} -g {params.chr_sizes} > {output.enh_expanded}
+		"""
+
+
+rule count_reads_baseline_elements_predictions:
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "{cell_type}", "resized_candidate_elements.bed"),
+		assay_bam = lambda wildcards: config[wildcards.cell_type]["bam"][wildcards.assay],
+		chr_sizes = config["chr_sizes"],
+		chr_sizes_bed = os.path.join(SCRATCH_DIR, "chr_sizes.bed")
+	params:
+		scratch_dir = SCRATCH_DIR
+	output: 
+		assay_counts = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "baseline_regions.RPM.tsv")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb=32*1000
+	shell:
+		"""			
+			python workflow/scripts/run.neighborhoods.extended.py \
+				--candidate_regions {input.enh_bed} \
+				--regions_id "candidate_regions" \
+				--outdir {params.scratch_dir}/{wildcards.cell_type}/{wildcards.assay} \
+				--assay_name {wildcards.assay} \
+				--assay_files "{input.assay_bam}" \
+				--chrom_sizes {input.chr_sizes} \
+				--chrom_sizes_bed {input.chr_sizes_bed} \
+				--outfile {output.assay_counts}
+		"""
+
+rule count_reads_original_elements_crispr:
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "tested_elements.bed4"),
+		assay_bam = lambda wildcards: config[get_data_cell_type(wildcards.crispr_cell_type)]["bam"][wildcards.assay],
+		chr_sizes = config["chr_sizes"],
+		chr_sizes_bed = os.path.join(SCRATCH_DIR, "chr_sizes.bed")
+	params:
+		scratch_dir = SCRATCH_DIR
+	output: 
+		assay_counts = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "original_regions.RPM.tsv")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb=32*1000
+	shell:
+		"""			
+			python workflow/scripts/run.neighborhoods.extended.py \
+				--candidate_regions {input.enh_bed} \
+				--regions_id "candidate_regions" \
+				--outdir {params.scratch_dir}/CRISPR_benchmark/{wildcards.data_cat}/{wildcards.crispr_cell_type}/{wildcards.assay} \
+				--assay_name {wildcards.assay} \
+				--assay_files "{input.assay_bam}" \
+				--chrom_sizes {input.chr_sizes} \
+				--chrom_sizes_bed {input.chr_sizes_bed} \
+				--outfile {output.assay_counts}
+		"""
+
+rule count_reads_expanded_elements_predictions:
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "{cell_type}", "EnhancerList.expanded.bed4"),
+		assay_bam = lambda wildcards: config[wildcards.cell_type]["bam"][wildcards.assay],
+		chr_sizes = config["chr_sizes"],
+		chr_sizes_bed = os.path.join(SCRATCH_DIR, "chr_sizes.bed")
+	params:
+		scratch_dir = SCRATCH_DIR
+	output: 
+		assay_counts = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "expanded_regions.RPM.tsv")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb=32*1000
+	shell:
+		"""
+			mkdir -p {params.scratch_dir}/{wildcards.cell_type}/{wildcards.assay}_expanded
+			python workflow/scripts/run.neighborhoods.extended.py \
+				--candidate_regions {input.enh_bed} \
+				--regions_id "expanded_candidate_regions" \
+				--outdir {params.scratch_dir}/{wildcards.cell_type}/{wildcards.assay}_expanded \
+				--assay_name "{wildcards.assay}" \
+				--assay_files "{input.assay_bam}" \
+				--chrom_sizes {input.chr_sizes} \
+				--chrom_sizes_bed {input.chr_sizes_bed} \
+				--outfile {output.assay_counts}
+
+		"""
+
+rule count_reads_expanded_elements_crispr:
+	input:
+		enh_bed = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "tested_elements.expanded.bed4"),
+		assay_bam = lambda wildcards: config[get_data_cell_type(wildcards.crispr_cell_type)]["bam"][wildcards.assay],
+		chr_sizes = config["chr_sizes"],
+		chr_sizes_bed = os.path.join(SCRATCH_DIR, "chr_sizes.bed")
+	params:
+		scratch_dir = SCRATCH_DIR
+	output: 
+		assay_counts = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "expanded_regions.RPM.tsv")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb=32*1000
+	shell:
+		"""
+			mkdir -p {params.scratch_dir}/CRISPR_benchmark/{wildcards.data_cat}/{wildcards.crispr_cell_type}/{wildcards.assay}_expanded
+			python workflow/scripts/run.neighborhoods.extended.py \
+				--candidate_regions {input.enh_bed} \
+				--regions_id "expanded_candidate_regions" \
+				--outdir {params.scratch_dir}/CRISPR_benchmark/{wildcards.data_cat}/{wildcards.crispr_cell_type}/{wildcards.assay}_expanded \
+				--assay_name "{wildcards.assay}" \
+				--assay_files "{input.assay_bam}" \
+				--chrom_sizes {input.chr_sizes} \
+				--chrom_sizes_bed {input.chr_sizes_bed} \
+				--outfile {output.assay_counts}
+
+		"""
+
+rule gather_annotations_for_predictions:
+	input:
+		enh_list = lambda wildcards: os.path.join(config[wildcards.cell_type]["E2G_results"], "Neighborhoods", "EnhancerList.txt"),
+		peak_overlaps = expand(os.path.join(SCRATCH_DIR, "{{cell_type}}", "{assay}", "peak_overlap.txt"), assay = config["peak_overlap_assays"]),
+		rpm_original = expand(os.path.join(SCRATCH_DIR, "{{cell_type}}", "{assay}", "baseline_regions.RPM.tsv"), assay = config["RPM_assays"]),
+		rpm_expanded = expand(os.path.join(SCRATCH_DIR, "{{cell_type}}", "{assay}", "expanded_regions.RPM.tsv"), assay = config["RPM_expanded_assays"])
+	params:
+		peak_overlap_assays = config["peak_overlap_assays"],
+		rpm_assays = config["RPM_assays"],
+		rpm_expanded_assays = config["RPM_expanded_assays"],
+		chr_col = config["chr_columns"]["predictions"],
+		start_col = config["start_columns"]["predictions"],
+		end_col = config["end_columns"]["predictions"]
+	output:
+		enh_plus = os.path.join(RESULTS_DIR, "{cell_type}", "EnhancerList.extended.tsv")
+	resources:
+		mem_mb=32*1000
+	script:
+		"scripts/gather_annotations_for_one_cell_type.R"
+
+rule gather_annotations_for_crispr_one_cell_type:
+	input:
+		enh_list = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "cell_type_subset.tsv.gz"),
+		peak_overlaps = expand(os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{{data_cat}}", "{{crispr_cell_type}}", "{assay}", "peak_overlap.txt"), assay = config["peak_overlap_assays"]),
+		rpm_original = expand(os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{{data_cat}}", "{{crispr_cell_type}}", "{assay}", "original_regions.RPM.tsv"), assay = config["RPM_assays"]),
+		rpm_expanded = expand(os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{{data_cat}}", "{{crispr_cell_type}}", "{assay}", "expanded_regions.RPM.tsv"), assay = config["RPM_expanded_assays"])
+	params:
+		peak_overlap_assays = config["peak_overlap_assays"],
+		rpm_assays = config["RPM_assays"],
+		rpm_expanded_assays = config["RPM_expanded_assays"],
+		chr_col = lambda wildcards: config["chr_columns"][wildcards.data_cat],
+		start_col = lambda wildcards: config["start_columns"][wildcards.data_cat],
+		end_col = lambda wildcards: config["end_columns"][wildcards.data_cat]
+	output:
+		enh_plus = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "cell_type_subset.extended.tsv.gz")
+	resources:
+		mem_mb=32*1000
+	script:
+		"scripts/gather_annotations_for_one_cell_type.R"
+
+rule merge_crispr_annotations:
+	input:
+		enh_plus = lambda wildcards: expand(os.path.join(SCRATCH_DIR, "CRISPR_benchmark", wildcards.data_cat, "{crispr_cell_type}", "cell_type_subset.extended.tsv.gz"),
+			crispr_cell_type = config["CRISPR_cell_types"][wildcards.data_cat])
+	params:
+		WTC11_ct = config["WTC11_cell_type"],
+		cell_type_col = lambda wildcards: config["cell_type_columns"][wildcards.data_cat]
+	output:
+		crispr_ext = os.path.join(RESULTS_DIR, "CRISPR_data", "{data_cat}.extended.tsv")
+	resources:
+		mem_mb=32*1000
+	script:
+		"scripts/gather_all_crispr_data.R"
+
+rule annotate_H3K27me3_peaks:
+	input:
+		h3k27me3_peaks = os.path.join(SCRATCH_DIR, "{cell_type}", "H3K27me3", "peaks.bed"), 
+		elements = os.path.join(SCRATCH_DIR, "{cell_type}", "resized_candidate_elements.bed"),
+		h3k4me1_bam = lambda wildcards: config[wildcards.cell_type]["bam"]["H3K4me1"],
+		chr_sizes = config["chr_sizes"],
+		chr_sizes_bed = os.path.join(SCRATCH_DIR, "chr_sizes.bed")
+	params:
+		scratch_dir = SCRATCH_DIR
+	output: 
+		H3K27me3_peaks_H3K4me1_counts = temp(os.path.join(SCRATCH_DIR, "{cell_type}", "H3K27me3_peaks_with_H3K4me1_counts.tsv")),
+		annotated_H3K27me3_peaks_unz = temp(os.path.join(SCRATCH_DIR, "{cell_type}", "annotated_H3K27me3_peaks.tsv")),
+		annotated_H3K27me3_peaks = os.path.join(RESULTS_DIR, "{cell_type}", "annotated_H3K27me3_peaks.tsv.gz")
+	conda:
+		config["envs"]["ABC"]
+	resources:
+		mem_mb=32*1000
+	shell:
+		"""
+			# count reads in peaks
+			mkdir -p {params.scratch_dir}/{wildcards.cell_type}/H3K27me3_peaks
+			python workflow/scripts/run.neighborhoods.extended.py \
+				--candidate_regions {input.h3k27me3_peaks} \
+				--regions_id "H3K27me3_peaks" \
+				--outdir {params.scratch_dir}/{wildcards.cell_type}/H3K27me3_peaks \
+				--assay_name "H3K4me1" \
+				--assay_files "{input.h3k4me1_bam}" \
+				--chrom_sizes {input.chr_sizes} \
+				--chrom_sizes_bed {input.chr_sizes_bed} \
+				--outfile {output.H3K27me3_peaks_H3K4me1_counts}
+
+			# add annotation of whether the peak overlaps candidate elements
+			(echo -e "$(cat {output.H3K27me3_peaks_H3K4me1_counts} | head -1)\tcandidate_element_overlap") > {output.annotated_H3K27me3_peaks_unz}
+
+			cat {output.H3K27me3_peaks_H3K4me1_counts} | sed 1d | \
+				bedtools intersect -a stdin -b {input.elements} -c >> {output.annotated_H3K27me3_peaks_unz}
+
+			cat {output.annotated_H3K27me3_peaks_unz} | gzip > {output.annotated_H3K27me3_peaks}
+
+		"""

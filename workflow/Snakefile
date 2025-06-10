@@ -1,0 +1,39 @@
+import yaml 
+import json
+import os
+import pandas as pd
+from collections import defaultdict
+
+conda: "mamba"
+
+include: "rules/utils.smk"
+
+## make all filepaths
+BASE_DIR = os.path.abspath(config["base_dir"])
+config = make_paths_absolute(config, BASE_DIR)
+config["results_dir"] = os.path.join(BASE_DIR, config["results_dir"])
+
+RESULTS_DIR = config["results_dir"]
+SCRATCH_DIR = config["scratch_dir"]
+SCRIPTS_DIR = os.path.join(BASE_DIR, "workflow/scripts")
+
+## read in metadata and process
+RUNTYPE_KEY = {"paired-ended": "pe", "single-ended": "se"}
+PROCESSED_BAM_DICT, BAM_ACCESSIONS_DICT, BAM_RUNTYPES_DICT, PROCESSED_PEAKS_DICT, PEAK_ACCESSION_DICT = process_encode_metadata(config["metadata_file"], config, SCRATCH_DIR)
+
+## set default values for config
+config["peak_ext_size"] = defaultdict(lambda: 0, config["peak_ext_size"])
+
+## import rules
+include: "rules/download.smk"
+include: "rules/annotate_elements.smk"
+
+## output file
+enh_plus = expand(os.path.join(RESULTS_DIR, "{cell_type}", "EnhancerList.extended.tsv"), cell_type = config["pred_cell_types"])
+
+output_files = []
+output_files.append(enh_plus)
+
+rule all:
+	input:
+		output_files

@@ -1,0 +1,70 @@
+from snakemake.utils import min_version
+min_version("7.0")
+
+import pandas as pd
+import os
+import yaml
+import numpy as np
+
+conda: "mamba"
+include: "rules/utils_neighborhoods.smk"
+
+E2G_DIR_PATH = os.path.abspath(config["E2G_DIR_PATH"])
+config = make_paths_absolute(config, E2G_DIR_PATH)
+# Need to manually make results_dir an absolute path since above may
+# not work if results_dir folder isn't created
+# If results_dir is already an absolute path, this is a no-op
+config["results_dir"] = os.path.join(E2G_DIR_PATH, config["results_dir"])
+RESULTS_DIR = config["results_dir"]
+SCRATCH_DIR = config["scratch_dir"]
+SCRIPTS_DIR = os.path.join(E2G_DIR_PATH, "workflow/scripts")
+megamap_file = config["MEGAMAP_HIC_FILE"]
+
+# create ABC biosamples from ENCODE metadata
+if not os.path.exists(config["results_dir"]):
+    os.makedirs(config["results_dir"])
+
+CONFIG_METADATA = pd.read_csv(config["ENCODE_metadata"], sep = "\t")
+abc_biosamples_path = os.path.join(RESULTS_DIR, "ABC_biosamples.tsv")
+config["ABC_BIOSAMPLES"] = abc_biosamples_path
+BIOSAMPLE_DF = create_abc_biosamples(config["ENCODE_metadata"], SCRATCH_DIR, megamap_file, abc_biosamples_path) 
+print(BIOSAMPLE_DF.head())
+
+# get some helpful dictionaries for later
+DNase_accession_dict = {id: x.replace(" ", "").split(",") for id, x in zip(CONFIG_METADATA['Biosample_unique_id'], CONFIG_METADATA['DNase_File_accession'])}
+DNase_type_dict = {id: x.replace(" ", "").split(",") for id, x in zip(CONFIG_METADATA['Biosample_unique_id'], CONFIG_METADATA['DNase_Run_type'])}
+H3K27ac_accession_dict = {id: x.replace(" ", "").split(",") for id, x in zip(CONFIG_METADATA['Biosample_unique_id'], CONFIG_METADATA['H3K27ac_File_accession'])}
+H3K27ac_type_dict = {id: x.replace(" ", "").split(",") for id, x in zip(CONFIG_METADATA['Biosample_unique_id'], CONFIG_METADATA['H3K27ac_Run_type'])}
+run_type_key = {"paired-ended": "pe", "single-ended": "se"}
+
+if not os.path.exists(config["results_dir"]):
+    os.makedirs(config["results_dir"])
+
+def get_abc_config(config):
+	abc_config_file = os.path.join(config["ABC_DIR_PATH"], "config/config.yaml")
+	with open(abc_config_file, 'r') as stream:
+		abc_config = yaml.safe_load(stream)
+	abc_config["ABC_DIR_PATH"] = config["ABC_DIR_PATH"]
+	abc_config["biosamplesTable"] = config["ABC_BIOSAMPLES"]
+	abc_config["results_dir"] = config["results_dir"]
+	return abc_config
+
+module ABC:
+	snakefile:
+		f"{config['ABC_DIR_PATH']}/workflow/Snakefile"
+	config: get_abc_config(config)
+
+use rule * from ABC exclude all as abc_*
+
+
+# don't actually need any E2G rules
+include: "rules/download.smk"
+# include: "rules/genomewide_features.smk"
+# include: "rules/predictions.smk"
+# include: "rules/qc.smk"
+
+rule all:
+	input: 
+		expand(
+			os.path.join(RESULTS_DIR, "{biosample}", "Neighborhoods", "EnhancerList.txt"), biosample=BIOSAMPLE_DF['biosample']
+		)

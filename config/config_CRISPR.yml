@@ -1,0 +1,158 @@
+## input
+results_dir: results/2025_0516_fix_peak_sizes
+pred_cell_types: [K562, GM12878, HCT116, Jurkat, WTC11, H1, H9]
+peak_overlap_assays: [CTCF, H3K27me3, H3K4me1]
+RPM_assays: [CTCF, DHS, H3K27ac, H3K27me3, H3K4me1] 
+RPM_expanded_assays: [DHS, H3K27ac, H3K27me3, H3K4me1] # calculate RPM in elements with extended bounds
+
+CRISPR_cell_types:
+  training: [K562]
+  all_DC_TAP_resized_merged_all_power: [K562, WTC11]
+  validation: [K562, GM12878, HCT116, Jurkat, WTC11]
+  Gasperini: [K562]
+
+chr_columns:
+  predictions: chr
+  training: chrom
+  validation: chrom
+  all_DC_TAP_resized_merged_all_power: resized_merged_targeting_chr_hg38
+  Gasperini: targeting_chr_hg38
+
+start_columns:
+  predictions: start
+  training: chromStart
+  validation: chromStart
+  all_DC_TAP_resized_merged_all_power: resized_merged_targeting_start_hg38
+  Gasperini: targeting_start_hg38
+
+end_columns:
+  predictions: end
+  training: chromEnd
+  validation: chromEnd
+  all_DC_TAP_resized_merged_all_power: resized_merged_targeting_end_hg38
+  Gasperini: targeting_end_hg38
+
+cell_type_columns:
+  predictions: CellType
+  training: CellType
+  validation: CellType
+  all_DC_TAP_resized_merged_all_power: cell_type
+  Gasperini: cell_type
+
+WTC11_cell_type: WTC11
+
+## other params
+scratch_dir: /scratch/users/shethm/CTCF_H3K27ac
+envs:
+  ABC: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G/ABC/workflow/envs/abcenv.yml
+chr_sizes: /oak/stanford/groups/engreitz/Users/sheth/hg38_resources/GRCh38.main.chrom.sizes
+
+## overlap params
+pred_trim_size: 0 # base pairs to trim prediction elements for for reducedRegion counts (to match DC-TAP orginal elements)
+pred_ext_size: 150 # base pairs to extend prediction elements by for expandedRegion counts
+peak_ext_size:
+  CTCF: 0
+  H3K27me3: 175
+  H3K4me1: 175
+
+
+## files
+CRISPR_benchmark:
+  training: /oak/stanford/groups/engreitz/Users/sheth/CRISPR_comparison_v3/CRISPR_comparison/resources/crispr_data/EPCrisprBenchmark_ensemble_data_GRCh38.tsv.gz
+  #validation: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/2025_0227_CTCF_and_H3K27ac/config/Final_Validation_Dataset.tsv.gz
+  validation: /oak/stanford/groups/engreitz/Users/jgalante/ENCODE_Sceptre_Analysis/results/combine_val_data_and_format/Final_Validation_Dataset.tsv.gz
+  all_DC_TAP_resized_merged_all_power: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/2025_0227_CTCF_and_H3K27ac/config/Final_DC_TAP_Seq_Results_w_Chromatin_Categories_on_resized_and_merged_elements.tsv.gz
+  Gasperini: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/2025_0227_CTCF_and_H3K27ac/config/Gasperini_results_with_element_gene_pair_categories.tsv.gz
+
+K562:
+  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/K562_H3K27ac_megamap
+  bam:
+    DHS: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF205FNC.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF860XAE.filtered.sorted.bam]
+    H3K27ac: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF790GFL.se.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF817HMW.se.filtered.sorted.bam]
+    CTCF: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF216XRV.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF216XRV.filtered.sorted.bam]
+    H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF549RYG.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF483EPA.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF351YGP.filtered.sorted.bam]
+    H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF524BOJ.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF204MWI.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF665JSC.filtered.sorted.bam]
+  bed:
+    CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF519CXF.bed.gz
+    H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF323WOT.bed.gz
+    H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF135ZLM.bed.gz
+
+GM12878:
+  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/GM12878_H3K27ac_megamap
+  bam:
+    DHS: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF467CXY_sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF940NSD_sorted.bam]
+    H3K27ac: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF645BAL.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF865OOP.filtered.sorted.bam]
+    CTCF: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF067RMO.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF551LHV.filtered.sorted.bam]
+    H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF867JWR.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF539NLB.filtered.sorted.bam]
+    H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF757IRH.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF579EEP.filtered.sorted.bam]
+  bed:
+    CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF797SDL.bed.gz
+    H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF695ETB.bed.gz
+    H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF321BVG.bed.gz
+
+HCT116:
+  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/HCT116_H3K27ac_megamap
+  bam:
+    DHS: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF166PCV.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF619LVU.filtered.sorted.bam]
+    H3K27ac: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF943GHK.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF977FPK.filtered.sorted.bam]
+    CTCF: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF844RTD.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF603FXX.filtered.sorted.bam]
+    H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF271HVJ.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF824RFB.filtered.sorted.bam]
+    H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF166PCV.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF304MDQ.filtered.sorted.bam]
+  bed:
+    CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF803RIY.bed.gz
+    H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF294LZM.bed.gz
+    H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF240LRP.bed.gz
+
+WTC11:
+  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/WTC11_H3K27ac_megamap
+  bam:
+    DHS: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF492WXQ.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF715YXX.sorted.bam]
+    H3K27ac: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF738QRT.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF696GDY.sorted.bam]
+    CTCF: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF318ICU.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF324TCJ.filtered.sorted.bam]
+    H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF871HOU.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF962OVD.filtered.sorted.bam]
+    H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF027HQS.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF229RFN.filtered.sorted.bam]
+  bed:
+    CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF112GJQ.bed.gz
+    H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF801DJK.bed.gz
+    H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF199JTJ.bed.gz
+
+H9:
+  E2G_results:  /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0219_ESC/H9_H3K27ac_megamap
+  bam: 
+    DHS: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF206ALY.sorted.bam,/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF291ZMA.sorted.bam]
+    H3K27ac: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF825BCF.filtered.sorted.bam,/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF709WUL.filtered.sorted.bam]
+    CTCF: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF026VFO.filtered.sorted.bam,/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF066ZCN.filtered.sorted.bam,/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF352EPG.filtered.sorted.bam]
+    H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF589VPD.filtered.sorted.bam,/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF058FAG.filtered.sorted.bam]
+    H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF746BGK.filtered.sorted.bam,/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF394VUF.filtered.sorted.bam]
+  bed:
+    CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF101UJJ.bed.gz
+    H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF680AKW.bed.gz
+    H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H9/ENCFF188TGA.bed.gz    
+
+H1:
+  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0219_ESC/H1_H3K27ac_megamap
+  bam:
+    DHS: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF674MNA.filtered.sorted.bam]
+    H3K27ac: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF120QMN.filtered.sorted.bam,/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF104RJG.filtered.sorted.bam]
+    CTCF: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF784FYF.filtered.sorted.bam]
+    H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF585QWP.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF642RQL.filtered.sorted.bam]
+    H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF598CAT.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF840OWD.filtered.sorted.bam]
+  bed:
+    CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF692RPA.bed.gz
+    H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF305KNA.bed.gz
+    H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/H1/ENCFF984DGO.bed.gz
+
+Jurkat:
+  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/Jurkat_H3K27ac_megamap
+  bam:
+    DHS: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/Jurkat/ENCFF623AMI.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/Jurkat/ENCFF443NXJ.filtered.sorted.bam]
+    H3K27ac: [/oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/resources/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/ABC_inputs_for_Maya/Jurkat/h3k27ac_rep1_sorted.bam,/oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/resources/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/ABC_inputs_for_Maya/Jurkat/h3k27ac_rep2_sorted.bam]
+    CTCF: [/oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/results/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/jurkat_bam_files_sorted/ctcf_sorted.bam]
+    H3K27me3: [/oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/results/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/jurkat_bam_files_sorted/h3k27me3_sorted.bam]
+    H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/SRA/Jurkat/H3K4me1/SRR7782877.filtered.sorted.dedup.bam]
+  bed:
+    CTCF: /oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/results/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/ctcf_peaks/jurkat.bed
+    H3K27me3: /oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/results/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/h3k27me3_peaks/jurkat.bed
+    H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/SRA/Jurkat/H3K4me1/macs2_peaks.filtered.bed.gz
+
+
