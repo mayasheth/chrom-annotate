@@ -1,0 +1,97 @@
+## input
+results_dir: /oak/stanford/groups/engreitz/Users/sheth/TF_analysis/2025_0609_K562_TF_annotations
+metadata_file: config/filtered_ENCODE_K562_ChIP_metadata.tsv
+pred_cell_types: [K562] 
+peak_overlap_assays: [EP300, CREBBP, CTCF, H3K27me3, H3K4me1, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, JUN, JUNB, JUND, ZNF281] # overlap with peaks
+RPM_assays: [EP300, CREBBP, CTCF, H3K27me3, H3K4me1, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # count reads from bam
+RPM_expanded_assays: [H3K27ac, H3K27me3, H3K4me1] # calculate RPM in elements with extended bounds
+FC_assays: [EP300, CREBBP, CTCF, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # quantify activity from fold-change bw
+
+
+## other params
+scratch_dir: /scratch/users/shethm/ENCODE_downloads
+envs:
+  ABC: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G/ABC/workflow/envs/abcenv.yml
+base_dir: /oak/stanford/groups/engreitz/Users/sheth/ABC_annotateElements
+chr_sizes: /oak/stanford/groups/engreitz/Users/sheth/hg38_resources/GRCh38.main.chrom.sizes
+
+## overlap params
+pred_trim_size: 0 # base pairs to trim prediction elements for for reducedRegion counts 
+pred_ext_size: 150 # base pairs to extend prediction elements by for expandedRegion counts
+peak_ext_size:
+  CTCF: 0
+  H3K27me3: 175
+  H3K4me1: 175
+
+## configure column names
+chr_columns:
+  predictions: chr
+start_columns:
+  predictions: start
+end_columns:
+  predictions: end
+cell_type_columns:
+  predictions: CellType
+
+## file paths and experiment accessions
+K562:
+  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/K562_H3K27ac_megamap
+  processed_files:
+    DNase:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF205FNC.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF860XAE.filtered.sorted.bam]
+    EP300:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF466WKF.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF163FSR.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF702XPO.bed.gz
+    H3K27ac:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF790GFL.se.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF817HMW.se.filtered.sorted.bam]
+    H3K27me3:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF549RYG.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF483EPA.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF351YGP.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF323WOT.bed.gz
+    H3K4me1:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF524BOJ.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF204MWI.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF665JSC.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF135ZLM.bed.gz
+    CTCF:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF216XRV.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF216XRV.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF519CXF.bed.gz
+
+  fold_change_bws:
+    EP300: https://www.encodeproject.org/files/ENCFF636VVR/@@download/ENCFF636VVR.bigWig
+    CREBBP: https://www.encodeproject.org/files/ENCFF959NNA/@@download/ENCFF959NNA.bigWig
+    CTCF: https://www.encodeproject.org/files/ENCFF405AYC/@@download/ENCFF405AYC.bigWig
+    GATA1: https://www.encodeproject.org/files/ENCFF240CAC/@@download/ENCFF240CAC.bigWig
+    GATA2: https://www.encodeproject.org/files/ENCFF582TIG/@@download/ENCFF582TIG.bigWig
+    ATF4: https://www.encodeproject.org/files/ENCFF891VJC/@@download/ENCFF891VJC.bigWig
+    CEBPG: https://www.encodeproject.org/files/ENCFF907OFL/@@download/ENCFF907OFL.bigWig
+    NRF1: https://www.encodeproject.org/files/ENCFF038PRI/@@download/ENCFF038PRI.bigWig
+    MAFK: https://www.encodeproject.org/files/ENCFF530IEE/@@download/ENCFF530IEE.bigWig
+    MAFF: https://www.encodeproject.org/files/ENCFF750ZMW/@@download/ENCFF750ZMW.bigWig
+    MAFG: https://www.encodeproject.org/files/ENCFF056BBN/@@download/ENCFF056BBN.bigWig
+    STAT5A: https://www.encodeproject.org/files/ENCFF171KLX/@@download/ENCFF171KLX.bigWig
+    STAT5B: https://www.encodeproject.org/files/ENCFF643ORC/@@download/ENCFF643ORC.bigWig
+    TBL1XR1: https://www.encodeproject.org/files/ENCFF422CNL/@@download/ENCFF422CNL.bigWig
+    JUN: https://www.encodeproject.org/files/ENCFF528PWS/@@download/ENCFF528PWS.bigWig
+    JUNB: https://www.encodeproject.org/files/ENCFF799YBH/@@download/ENCFF799YBH.bigWig
+    JUND: https://www.encodeproject.org/files/ENCFF985WIP/@@download/ENCFF985WIP.bigWig
+    ZNF281: https://www.encodeproject.org/files/ENCFF855CVL/@@download/ENCFF855CVL.bigWig
+
+  experiment_accessions:
+    CREBBP: ENCSR000ATT
+    GATA1: ENCSR000EWM
+    GATA2: ENCSR000EWG
+    ATF4: ENCSR145TSJ
+    CEBPG: ENCSR058DRG
+    NRF1: ENCSR998AJK
+    MAFK: ENCSR000EGX
+    MAFF: ENCSR000EGI
+    MAFG: ENCSR818DQV
+    STAT5A: ENCSR000BRR
+    STAT5B: ENCSR663NFC
+    TBL1XR1: ENCSR000EGB
+    JUN: ENCSR000EFS
+    JUNB: ENCSR795IYP
+    JUND: ENCSR000EGN
+    ZNF281: ENCSR214EKV
+    
+    
+
+  
