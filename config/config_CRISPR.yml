@@ -73,6 +73,7 @@ K562:
     H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF549RYG.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF483EPA.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF351YGP.filtered.sorted.bam]
     H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF524BOJ.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF204MWI.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF665JSC.filtered.sorted.bam]
   bed:
+    H3K27ac: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF544LXB.bed.gz
     CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF519CXF.bed.gz
     H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF323WOT.bed.gz
     H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF135ZLM.bed.gz

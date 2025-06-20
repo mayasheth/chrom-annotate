@@ -1,23 +1,30 @@
 ## input
 results_dir: /oak/stanford/groups/engreitz/Users/sheth/TF_analysis/2025_0609_K562_TF_annotations
 metadata_file: config/filtered_ENCODE_K562_ChIP_metadata.tsv
-pred_cell_types: [K562] 
 peak_overlap_assays: [EP300, CREBBP, CTCF, H3K27me3, H3K4me1, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, JUN, JUNB, JUND, ZNF281] # overlap with peaks
-RPM_assays: [EP300, CREBBP, CTCF, H3K27me3, H3K4me1, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # count reads from bam
+RPM_assays: [EP300, CREBBP, CTCF, DHS, H3K27ac, H3K27me3, H3K4me1, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # count reads from bam
 RPM_expanded_assays: [H3K27ac, H3K27me3, H3K4me1] # calculate RPM in elements with extended bounds
-FC_assays: [EP300, CREBBP, CTCF, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # quantify activity from fold-change bw
+FC_assays: [EP300, CREBBP, CTCF, H3K27ac, DHS, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # quantify activity from fold-change bw
 
+## files to annotate
+elements_to_annotate:
+  EnhancerList: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/K562_H3K27ac_megamap/Neighborhoods/EnhancerList.txt
+  finemo_peaks: /oak/stanford/groups/engreitz/Users/sheth/EP300_BPNet/2025_0517_official_EP300_K562_model/finemo/all_folds/all_peaks_with_model_annot.tsv.gz
+
+element_cell_types:
+  EnhancerList: [K562]
+  finemo_peaks: [K562]
 
 ## other params
 scratch_dir: /scratch/users/shethm/ENCODE_downloads
 envs:
   ABC: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G/ABC/workflow/envs/abcenv.yml
-base_dir: /oak/stanford/groups/engreitz/Users/sheth/ABC_annotateElements
+base_dir: /oak/stanford/groups/engreitz/Users/sheth/chrom-annotate
 chr_sizes: /oak/stanford/groups/engreitz/Users/sheth/hg38_resources/GRCh38.main.chrom.sizes
 
 ## overlap params
-pred_trim_size: 0 # base pairs to trim prediction elements for for reducedRegion counts 
-pred_ext_size: 150 # base pairs to extend prediction elements by for expandedRegion counts
+element_trim_size: 0 # base pairs to trim elements for for reducedRegion counts 
+element_ext_size: 150 # base pairs to extend elements by for expandedRegion counts
 peak_ext_size:
   CTCF: 0
   H3K27me3: 175
@@ -25,19 +32,22 @@ peak_ext_size:
 
 ## configure column names
 chr_columns:
-  predictions: chr
+  EnhancerList: chr
+  finemo_peaks: chr
 start_columns:
-  predictions: start
+  EnhancerList: start
+  finemo_peaks: peak_start
 end_columns:
-  predictions: end
+  EnhancerList: end
+  finemo_peaks: peak_end
 cell_type_columns:
-  predictions: CellType
+  EnhancerList: NONE
+  finemo_peaks: NONE
 
-## file paths and experiment accessions
+## file paths and experiment accessions to chromatin signal data
 K562:
-  E2G_results: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/K562_H3K27ac_megamap
   processed_files:
-    DNase:
+    DHS:
       reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF205FNC.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF860XAE.filtered.sorted.bam]
     EP300:
       reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF466WKF.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF163FSR.filtered.sorted.bam]
@@ -55,7 +65,9 @@ K562:
       peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF519CXF.bed.gz
 
   fold_change_bws:
+    DHS: https://www.encodeproject.org/files/ENCFF414OGC/@@download/ENCFF414OGC.bigWig
     EP300: https://www.encodeproject.org/files/ENCFF636VVR/@@download/ENCFF636VVR.bigWig
+    H3K27ac: https://www.encodeproject.org/files/ENCFF849TDM/@@download/ENCFF849TDM.bigWig
     CREBBP: https://www.encodeproject.org/files/ENCFF959NNA/@@download/ENCFF959NNA.bigWig
     CTCF: https://www.encodeproject.org/files/ENCFF405AYC/@@download/ENCFF405AYC.bigWig
     GATA1: https://www.encodeproject.org/files/ENCFF240CAC/@@download/ENCFF240CAC.bigWig

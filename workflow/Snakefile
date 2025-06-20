@@ -29,7 +29,7 @@ include: "rules/download.smk"
 include: "rules/annotate_elements.smk"
 
 ## output file
-enh_plus = expand(os.path.join(RESULTS_DIR, "{cell_type}", "EnhancerList.extended.tsv"), cell_type = config["pred_cell_types"])
+enh_plus = expand(os.path.join(RESULTS_DIR, "{data_cat}.chromatin_annotations.tsv"), data_cat = config["elements_to_annotate"])
 
 output_files = []
 output_files.append(enh_plus)
