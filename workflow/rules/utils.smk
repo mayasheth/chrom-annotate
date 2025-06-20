@@ -57,112 +57,115 @@ def get_metadata_for_rpm_assay(metadata_df, experiment_accession):
 	return file_accessions, list(runtype_dict.values())
 
 def get_metadata_for_peak_assay(metadata_df, experiment_accession):
-    OUTPUT_TYPE_PRIORITY = [
-        "Optimal IDR thresholded peaks",
-        "IDR thresholded peaks",
-        "Replicated peaks",
-        "Pseudoreplicated peaks",
-        "Peaks"
-    ]
+	OUTPUT_TYPE_PRIORITY = [
+		"Optimal IDR thresholded peaks",
+		"IDR thresholded peaks",
+		"Replicated peaks",
+		"Pseudoreplicated peaks",
+		"Peaks"
+	]
 
-    peak_meta = metadata_df[
-        (metadata_df["Experiment accession"] == experiment_accession) &
-        (metadata_df["File format"] == "bed narrowPeak")
-    ].copy()
+	peak_meta = metadata_df[
+		(metadata_df["Experiment accession"] == experiment_accession) &
+		(metadata_df["File format"] == "bed narrowPeak")
+	].copy()
 
-    if peak_meta.empty:
-        raise Exception(f"No narrowPeak file found for experiment {experiment_accession}")
+	if peak_meta.empty:
+		raise Exception(f"No narrowPeak file found for experiment {experiment_accession}")
 
-    peak_meta["rep_count"] = [tech_reps.count(",") + 1 for tech_reps in peak_meta["Technical replicate(s)"]]
-    peak_meta = peak_meta[peak_meta["rep_count"] == peak_meta["rep_count"].max()]
+	peak_meta["rep_count"] = [tech_reps.count(",") + 1 for tech_reps in peak_meta["Technical replicate(s)"]]
+	peak_meta = peak_meta[peak_meta["rep_count"] == peak_meta["rep_count"].max()]
 
-    for output_type in OUTPUT_TYPE_PRIORITY:
-        match = peak_meta[peak_meta["Output type"] == output_type]
-        if not match.empty:
-            accession = match.iloc[0]["File accession"]
-            return accession, output_type
+	for output_type in OUTPUT_TYPE_PRIORITY:
+		match = peak_meta[peak_meta["Output type"] == output_type]
+		if not match.empty:
+			accession = match.iloc[0]["File accession"]
+			return accession, output_type
 
-    raise Exception(f"No suitable output type found for experiment {experiment_accession}")
+	raise Exception(f"No suitable output type found for experiment {experiment_accession}")
 
 def process_encode_metadata(metadata_file, config, scratch_dir):
-    rpm_assays = config["RPM_assays"] + config["RPM_expanded_assays"]
-    peak_assays = config["peak_overlap_assays"]
+	from itertools import chain
 
-    meta = pd.read_csv(metadata_file, sep="\t")
-    meta = meta[meta["Biosample term name"].isin(config["pred_cell_types"])]
+	rpm_assays = config["RPM_assays"] + config["RPM_expanded_assays"]
+	peak_assays = config["peak_overlap_assays"]
+	all_cell_types = list(set(chain.from_iterable(config["element_cell_types"].values())))
 
-    processed_bam_dict = {}
-    bam_accessions_dict = {}
-    bam_runtypes_dict = {}
-    processed_peaks_dict = {}
-    peak_accessions_dict = {}
+	meta = pd.read_csv(metadata_file, sep="\t")
+	meta = meta[meta["Biosample term name"].isin(all_cell_types)]
 
-    def snakecase(s):
-        return s.lower().replace(" ", "_")
+	processed_bam_dict = {}
+	bam_accessions_dict = {}
+	bam_runtypes_dict = {}
+	processed_peaks_dict = {}
+	peak_accessions_dict = {}
 
-    for biosample in config["pred_cell_types"]:
-        this_processed_reads = {}
-        this_bam_accessions = {}
-        this_bam_runtypes = {}
-        this_processed_peaks = {}
-        this_peak_accessions = {}
+	def snakecase(s):
+		return s.lower().replace(" ", "_")
 
-        # RPM assays
-        for assay in rpm_assays:
-            file_accessions = ""
-            runtypes = ""
+	for biosample in all_cell_types:
+		this_processed_reads = {}
+		this_bam_accessions = {}
+		this_bam_runtypes = {}
+		this_processed_peaks = {}
+		this_peak_accessions = {}
 
-            if assay in config[biosample].get("processed_files", {}):
-                reads = config[biosample]["processed_files"][assay].get("reads")
-                if reads:
-                    this_processed_reads[assay] = reads
-                    this_bam_accessions[assay] = ""
-                    this_bam_runtypes[assay] = ""
-                    continue
+		# RPM assays
+		for assay in rpm_assays:
+			file_accessions = ""
+			runtypes = ""
 
-            if assay in config[biosample].get("experiment_accessions", {}):
-                experiment_accession = config[biosample]["experiment_accessions"][assay]
-                file_accessions, runtypes = get_metadata_for_rpm_assay(meta, experiment_accession)
-                target_bam_files = [
-                    os.path.join(scratch_dir, biosample, f"{acc}.{RUNTYPE_KEY[rt]}.filtered.sorted.bam")
-                    for rt, acc in zip(runtypes, file_accessions)
-                ]
-                this_processed_reads[assay] = target_bam_files
-                this_bam_accessions[assay] = file_accessions
-                this_bam_runtypes[assay] = runtypes
-            else:
-                raise Exception(f"No data specified to calculate {biosample} {assay} RPM.")
+			if assay in config[biosample].get("processed_files", {}):
+				reads = config[biosample]["processed_files"][assay].get("reads")
+				if reads:
+					this_processed_reads[assay] = reads
+					this_bam_accessions[assay] = ""
+					this_bam_runtypes[assay] = ""
+					continue
 
-        # Peak assays
-        for assay in peak_assays:
-            if assay in config[biosample].get("processed_files", {}):
-                peaks = config[biosample]["processed_files"][assay].get("peaks")
-                if peaks:
-                    this_processed_peaks[assay] = peaks
-                    this_peak_accessions[assay] = ""  # No accession needed
-                    continue
+			if assay in config[biosample].get("experiment_accessions", {}):
+				experiment_accession = config[biosample]["experiment_accessions"][assay]
+				file_accessions, runtypes = get_metadata_for_rpm_assay(meta, experiment_accession)
+				target_bam_files = [
+					os.path.join(scratch_dir, biosample, f"{acc}.{RUNTYPE_KEY[rt]}.filtered.sorted.bam")
+					for rt, acc in zip(runtypes, file_accessions)
+				]
+				this_processed_reads[assay] = target_bam_files
+				this_bam_accessions[assay] = file_accessions
+				this_bam_runtypes[assay] = runtypes
+			else:
+				raise Exception(f"No data specified to calculate {biosample} {assay} RPM.")
 
-            if assay in config[biosample].get("experiment_accessions", {}):
-                experiment_accession = config[biosample]["experiment_accessions"][assay]
-                accession, output_type = get_metadata_for_peak_assay(meta, experiment_accession)
-                peak_filename = f"{accession}.{snakecase(output_type)}.peaks.bed.gz"
-                this_processed_peaks[assay] = os.path.join(scratch_dir, biosample, peak_filename)
-                this_peak_accessions[assay] = accession
-            else:
-                raise Exception(f"No data specified to locate peaks for {biosample} {assay}")
+		# Peak assays
+		for assay in peak_assays:
+			if assay in config[biosample].get("processed_files", {}):
+				peaks = config[biosample]["processed_files"][assay].get("peaks")
+				if peaks:
+					this_processed_peaks[assay] = peaks
+					this_peak_accessions[assay] = ""  # No accession needed
+					continue
 
-        processed_bam_dict[biosample] = this_processed_reads
-        bam_accessions_dict[biosample] = this_bam_accessions
-        bam_runtypes_dict[biosample] = this_bam_runtypes
-        processed_peaks_dict[biosample] = this_processed_peaks
-        peak_accessions_dict[biosample] = this_peak_accessions
+			if assay in config[biosample].get("experiment_accessions", {}):
+				experiment_accession = config[biosample]["experiment_accessions"][assay]
+				accession, output_type = get_metadata_for_peak_assay(meta, experiment_accession)
+				peak_filename = f"{accession}.{snakecase(output_type)}.peaks.bed.gz"
+				this_processed_peaks[assay] = os.path.join(scratch_dir, biosample, peak_filename)
+				this_peak_accessions[assay] = accession
+			else:
+				raise Exception(f"No data specified to locate peaks for {biosample} {assay}")
 
-    return (
-        processed_bam_dict,
-        bam_accessions_dict,
-        bam_runtypes_dict,
-        processed_peaks_dict,
-        peak_accessions_dict
-    )
+		processed_bam_dict[biosample] = this_processed_reads
+		bam_accessions_dict[biosample] = this_bam_accessions
+		bam_runtypes_dict[biosample] = this_bam_runtypes
+		processed_peaks_dict[biosample] = this_processed_peaks
+		peak_accessions_dict[biosample] = this_peak_accessions
+
+	return (
+		processed_bam_dict,
+		bam_accessions_dict,
+		bam_runtypes_dict,
+		processed_peaks_dict,
+		peak_accessions_dict
+	)
 
 

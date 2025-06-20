@@ -23,22 +23,14 @@ end_col <- snakemake@params$end_col
 out_file <- snakemake@output$enh_plus
 
 ## READ IN MAIN ENH LIST
-enh_list <- fread(snakemake@input$enh_list, sep = "\t")
-if ("activity_base" %in% colnames(enh_list)) { # predictions enh list
-    enh_list <- enh_list %>%
-        select(chr, start, end, class, elementName = name, activity_base, activity_base_no_qnorm, 
-            DHS.RPMpromoter.quantile, DHS.RPMnonpromoter.quantile,
-            H3K27ac.RPMpromoter.quantile, H3K27ac.RPMnonpromoter.quantile)
-} else { # this is crispr data
-    enh_list <- enh_list %>%
-        mutate(elementName = paste0(!!sym(chr_col), ":", !!sym(start_col), "-", !!sym(end_col)))
-}
-
+enh_list <- fread(snakemake@input$enh_list, sep = "\t") %>% 
+    mutate(elementName = paste0(!!sym(chr_col), ":", !!sym(start_col), "-", !!sym(end_col)))
 
 ## ADD PEAK OVERLAPS
 for (assay in peak_overlap_assays) {
     this_overlap <- readLines(peak_overlap_files[assay])
     col_name <- paste0(assay, "_peak_overlap")
+    if (col_name %in% colnames(enh_list)) {enh_list <- enh_list %>% select(-!!sym(col_name))}
 
     enh_list <- enh_list %>% mutate(!!sym(col_name) := ifelse(elementName %in% this_overlap, 1, 0))
 }
@@ -46,6 +38,8 @@ for (assay in peak_overlap_assays) {
 ## ADD ORIGINAL (OR RESIZED SMALLER) RPM COUNTS
 for (assay in rpm_assays) {
     col_name <- paste0(assay, ".RPM")
+    if (col_name %in% colnames(enh_list)) {enh_list <- enh_list %>% select(-!!sym(col_name))}
+
     this_rpm <- fread(rpm_files[assay], sep = "\t") %>%
         select(elementName = name, all_of(col_name))
 
@@ -55,6 +49,8 @@ for (assay in rpm_assays) {
 ## ADD ORIGINAL (OR RESIZED SMALLER) FOLD-CHANGE "COUNTS"
 for (assay in fc_assays) {
     col_name <- paste0(assay, "_fc.RPM")
+    if (col_name %in% colnames(enh_list)) {enh_list <- enh_list %>% select(-!!sym(col_name))}
+
     this_fc <- fread(fc_files[assay], sep = "\t") %>%
         select(elementName = name, all_of(col_name))
 
@@ -65,6 +61,8 @@ for (assay in fc_assays) {
 for (assay in rpm_expanded_assays) {
     input_col <- paste0(assay, ".RPM")
     output_col <- paste0(assay, ".RPM.expandedRegion")
+    if (output_col %in% colnames(enh_list)) {enh_list <- enh_list %>% select(-!!sym(output_col))}
+
     this_rpm <- fread(rpm_expanded_files[assay], sep = "\t") %>%
         rename(!!sym(output_col) := input_col) %>%
         select(elementName = name, output_col)
