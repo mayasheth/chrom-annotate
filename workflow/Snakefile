@@ -4,7 +4,6 @@ import os
 import pandas as pd
 from collections import defaultdict
 
-conda: "mamba"
 
 include: "rules/utils.smk"
 

@@ -4,21 +4,20 @@ metadata_file: config/filtered_ENCODE_K562_ChIP_metadata.tsv
 peak_overlap_assays: [EP300, CREBBP, CTCF, H3K27me3, H3K4me1, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, JUN, JUNB, JUND, ZNF281] # overlap with peaks
 RPM_assays: [EP300, CREBBP, CTCF, DHS, H3K27ac, H3K27me3, H3K4me1, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # count reads from bam
 RPM_expanded_assays: [H3K27ac, H3K27me3, H3K4me1] # calculate RPM in elements with extended bounds
-FC_assays: [EP300, CREBBP, CTCF, H3K27ac, DHS, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # quantify activity from fold-change bw
+FC_assays: [] #[EP300, CREBBP, CTCF, H3K27ac, DHS, GATA1, GATA2, ATF4, CEBPG, NRF1, MAFK, MAFF, MAFG, STAT5A, STAT5B, TBL1XR1, JUN, JUNB, JUND, ZNF281] # quantify activity from fold-change bw
 
 ## files to annotate
 elements_to_annotate:
-  EnhancerList: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/K562_H3K27ac_megamap/Neighborhoods/EnhancerList.txt
-  finemo_peaks: /oak/stanford/groups/engreitz/Users/sheth/EP300_BPNet/2025_0517_official_EP300_K562_model/finemo/all_folds/all_peaks_with_model_annot.tsv.gz
+  #EnhancerList: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G_main/ENCODE_rE2G/results/2025_0227_validation_new_inputs/K562_H3K27ac_megamap/Neighborhoods/EnhancerList.txt
+  finemo_peaks_all_chr: /oak/stanford/groups/engreitz/Users/sheth/EP300_BPNet/2025_0517_official_EP300_K562_model/finemo_all_chr/hits_per_peak.with_predictions.tsv.gz
 
 element_cell_types:
   EnhancerList: [K562]
-  finemo_peaks: [K562]
+  finemo_peaks_all_chr: [K562]
 
 ## other params
 scratch_dir: /scratch/users/shethm/ENCODE_downloads
-envs:
-  ABC: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G/ABC/workflow/envs/abcenv.yml
+
 base_dir: /oak/stanford/groups/engreitz/Users/sheth/chrom-annotate
 chr_sizes: /oak/stanford/groups/engreitz/Users/sheth/hg38_resources/GRCh38.main.chrom.sizes
 
@@ -34,15 +33,19 @@ peak_ext_size:
 chr_columns:
   EnhancerList: chr
   finemo_peaks: chr
+  finemo_peaks_all_chr: chrom
 start_columns:
   EnhancerList: start
   finemo_peaks: peak_start
+  finemo_peaks_all_chr: start
 end_columns:
   EnhancerList: end
   finemo_peaks: peak_end
+  finemo_peaks_all_chr: end
 cell_type_columns:
   EnhancerList: NONE
   finemo_peaks: NONE
+  finemo_peaks_all_chr: NONE
 
 ## file paths and experiment accessions to chromatin signal data
 K562:

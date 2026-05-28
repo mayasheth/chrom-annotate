@@ -74,8 +74,7 @@ rule get_peak_overlaps:
 	output:
 		interm_peaks = os.path.join(SCRATCH_DIR,"elements", "{data_cat}", "{this_cell_type}", "{assay}", "peaks.bed"), 
 		this_overlap = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "peak_overlap.txt")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -100,8 +99,7 @@ rule expand_candidate_elements:
 		chr_sizes = config["chr_sizes"]
 	output:
 		enh_expanded = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "elements_expanded.bed4")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -121,8 +119,7 @@ rule count_reads_baseline_elements_predictions:
 		scripts_dir = SCRIPTS_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "baseline_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -151,8 +148,7 @@ rule calculate_fold_change_signal_baseline_elements:
 	output: 
 		bw_download = temp(os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "fold_change_bw.bigWig")),
 		assay_fc = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "baseline_regions.fold_change.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -181,8 +177,7 @@ rule count_reads_expanded_elements:
 		scripts_dir = SCRIPTS_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "expanded_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:

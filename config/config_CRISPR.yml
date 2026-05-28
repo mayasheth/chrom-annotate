@@ -1,7 +1,7 @@
 ## input
-results_dir: results/2025_0516_fix_peak_sizes
-pred_cell_types: [K562, GM12878, HCT116, Jurkat, WTC11, H1, H9]
-peak_overlap_assays: [CTCF, H3K27me3, H3K4me1]
+results_dir: results/2025_0620_revisit_categories
+pred_cell_types: [K562, GM12878, HCT116, Jurkat, WTC11]
+peak_overlap_assays: [CTCF, H3K27me3, H3K4me1, H3K27ac]
 RPM_assays: [CTCF, DHS, H3K27ac, H3K27me3, H3K4me1] 
 RPM_expanded_assays: [DHS, H3K27ac, H3K27me3, H3K4me1] # calculate RPM in elements with extended bounds
 
@@ -43,8 +43,7 @@ WTC11_cell_type: WTC11
 
 ## other params
 scratch_dir: /scratch/users/shethm/CTCF_H3K27ac
-envs:
-  ABC: /oak/stanford/groups/engreitz/Users/sheth/ENCODE_rE2G/ABC/workflow/envs/abcenv.yml
+
 chr_sizes: /oak/stanford/groups/engreitz/Users/sheth/hg38_resources/GRCh38.main.chrom.sizes
 
 ## overlap params
@@ -54,6 +53,7 @@ peak_ext_size:
   CTCF: 0
   H3K27me3: 175
   H3K4me1: 175
+  H3K27ac: 175
 
 
 ## files
@@ -87,6 +87,7 @@ GM12878:
     H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF867JWR.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF539NLB.filtered.sorted.bam]
     H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF757IRH.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF579EEP.filtered.sorted.bam]
   bed:
+    H3K27ac: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF023LTU.bed.gz
     CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF797SDL.bed.gz
     H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF695ETB.bed.gz
     H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/GM12878/ENCFF321BVG.bed.gz
@@ -100,6 +101,7 @@ HCT116:
     H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF271HVJ.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF824RFB.filtered.sorted.bam]
     H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF166PCV.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF304MDQ.filtered.sorted.bam]
   bed:
+    H3K27ac: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF899XEF.bed.gz
     CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF803RIY.bed.gz
     H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF294LZM.bed.gz
     H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/HCT116/ENCFF240LRP.bed.gz
@@ -113,6 +115,7 @@ WTC11:
     H3K27me3: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF871HOU.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF962OVD.filtered.sorted.bam]
     H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF027HQS.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF229RFN.filtered.sorted.bam]
   bed:
+    H3K27ac: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF655PNM.bed.gz
     CTCF: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF112GJQ.bed.gz
     H3K27me3: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF801DJK.bed.gz
     H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/WTC11/ENCFF199JTJ.bed.gz
@@ -152,6 +155,7 @@ Jurkat:
     H3K27me3: [/oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/results/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/jurkat_bam_files_sorted/h3k27me3_sorted.bam]
     H3K4me1: [/oak/stanford/groups/engreitz/Users/sheth/Data/SRA/Jurkat/H3K4me1/SRR7782877.filtered.sorted.dedup.bam]
   bed:
+    H3K27ac: /oak/stanford/groups/engreitz/Users/sheth/Data/SRA/Jurkat/H3K27ac/macs2_peaks.filtered.bed.gz
     CTCF: /oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/results/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/ctcf_peaks/jurkat.bed
     H3K27me3: /oak/stanford/groups/engreitz/Users/jgalante/making_jurkat/results/analyze_validation_datasets/process_bam_files_and_combined_w_EG_results/h3k27me3_peaks/jurkat.bed
     H3K4me1: /oak/stanford/groups/engreitz/Users/sheth/Data/SRA/Jurkat/H3K4me1/macs2_peaks.filtered.bed.gz
