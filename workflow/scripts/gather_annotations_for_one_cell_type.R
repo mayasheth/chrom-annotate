@@ -13,8 +13,6 @@ get_assays <- function(str_in) {
         assays <- NULL
     }
 
-    print(assays)
-
     return(assays)
 }
 

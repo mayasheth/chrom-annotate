@@ -49,6 +49,7 @@ rule split_elements_by_cell_type:
 				eval "$READ_CMD" | sed 1d | gzip >> {output.element_subset}
 			else
 				col_number=$(eval "$READ_CMD" | head -n 1 | tr '\t' '\n' | nl -v 1 | grep -w "{params.ct_col}" | awk '{{print $1}}')
+				if [[ -z "$col_number" ]]; then echo "ERROR: column '{params.ct_col}' not found in header" >&2; exit 1; fi
 				eval "$READ_CMD" | awk -F'\t' -v col=$col_number '$col == "{wildcards.this_cell_type}"' | \
 					gzip >> {output.element_subset}
 			fi
@@ -59,7 +60,7 @@ rule split_elements_by_cell_type:
 				sed 1d | sort -k1,1 -k2,2n | uniq | \
 				awk -F'\t' 'BEGIN {{OFS="\t"}} {{print $0, $1 ":" $2 "-" $3}}' | \
 				awk -F'\t' 'BEGIN {{OFS="\t"}} {{ col1=$1; col2=$2 + {params.trim_size}; col3=$3 - {params.trim_size};
-					print $1, col2, col3, $4}}' > {output.elements_bed}
+					if (col3 > col2) print $1, col2, col3, $4}}' > {output.elements_bed}
     """
 
 

@@ -18,7 +18,7 @@ SCRIPTS_DIR = os.path.join(BASE_DIR, "workflow/scripts")
 
 ## read in metadata and process
 RUNTYPE_KEY = {"paired-ended": "pe", "single-ended": "se"}
-PROCESSED_BAM_DICT, BAM_ACCESSIONS_DICT, BAM_RUNTYPES_DICT, PROCESSED_PEAKS_DICT, PEAK_ACCESSION_DICT = process_encode_metadata(config["metadata_file"], config, SCRATCH_DIR)
+PROCESSED_BAM_DICT, PROCESSED_PEAKS_DICT = process_encode_metadata(config["metadata_file"], config, SCRATCH_DIR)
 
 ## set default values for config
 config["peak_ext_size"] = defaultdict(lambda: 0, config["peak_ext_size"])
