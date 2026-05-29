@@ -20,12 +20,14 @@ pybigwig = "*"
 pyranges = "*"
 scipy = "*"
 
-# R: gather_annotations_for_one_cell_type.R, gather_across_cell_types.R, gather_all_crispr_data.R
+# R: gather_annotations_for_one_cell_type.R, gather_across_cell_types.R, gather_all_crispr_data.R,
+#    chromatin_categories.R
 r-base = "*"
 r-dplyr = "*"
 r-tidyr = "*"
 "r-data.table" = "*"
 r-stringr = "*"
+r-ggplot2 = "*"
 
 # CLI tools used in shell rules
 samtools = "*"

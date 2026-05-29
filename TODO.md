@@ -2,11 +2,18 @@
 
 ## Active tasks
 
-- [ ] **Document pipeline** — expand README and inline comments; add usage examples and a diagram of the workflow DAG; document all config fields
+- [x] **Document pipeline** — README has pipeline overview, all config fields, invocation examples (pixi run), input/output format, annotation types, chromatin categorization workflow
 - [x] **Create pixi environment for pipeline and test that it works** — `pixi.toml` created with Sherlock system requirements; all Python/R/CLI deps verified; use `pixi run snakemake` without `--use-conda`
-- [ ] **Describe options/capacity of annotations and input/output file formats** — document all annotation types (peak overlap, RPM, RPM expanded, fold-change), their column naming conventions, and accepted input formats (TSV/TSV.gz, BED/BED.gz); add to README
+- [x] **Describe options/capacity of annotations and input/output file formats** — README documents all annotation types (peak overlap, RPM, RPM expanded, fold-change), column naming, BAM/tagAlign/peak input formats
 - [ ] **Organize metadata and available genomic data files** — audit which cell types and assays are available in `/oak/.../Data/ENCODE/`; create a manifest/table of available BAMs, peaks, and cell types; clean up config metadata files
-- [ ] **Add documentation and helper scripts for chromatin categorization** — document the chromatin state categories used downstream (active enhancer, bivalent, Polycomb, etc.); add helper R/Python scripts to classify elements from annotation output columns
+- [x] **Add documentation and helper scripts for chromatin categorization** — `workflow/scripts/chromatin_categories.R` with `get_category_thresholds`, `get_threshold_key`, `categorize_elements` + canonical colors/order; README section with required assays and usage example
+
+## Chromatin categorization improvements
+
+- [ ] Remove `CTCF.H3K27ac.ratio` — confirmed unused: computed in `get_category_thresholds` as `CTCF.H3K27ac.ratio.CTCF_peak` but never retrieved by `get_threshold_key` or referenced in `categorize_elements`; remove from `chromatin_categories.R`, README example, and any upstream `mutate()` calls
+- [ ] General cleanup pass on `chromatin_categories.R` — verify all computed thresholds are actually used, check edge cases (e.g. cell types missing from thresholds table)
+- [x] Ensure pixi environment supports categorization code — added `r-ggplot2` to `pixi.toml`; `rlang` available transitively via `dplyr`
+- [x] Add ATAC-seq support as alternative to DHS/DNase for accessibility metric — `get_category_thresholds` now accepts `DHS.RPM` or `ATAC.RPM`; tagAlign files already handled by `neighborhoods.py` (auto-detected by filename); provide `.tagAlign.gz` under `reads` in config
 
 ## Code review fixes
 

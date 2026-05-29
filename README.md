@@ -5,7 +5,7 @@ Snakemake pipeline for annotating genomic elements with chromatin signals from C
 - **Peak overlap** — binary indicator of whether an element overlaps a ChIP-seq peak
 - **RPM** — read count (reads per million) in the element's original coordinates
 - **RPM (expanded region)** — RPM in coordinates expanded by a configurable number of base pairs
-- **Fold-change signal** — average fold-change bigWig signal over the element
+- **Fold-change signal** — average fold-change bigWig signal over the element (deprecatd)
 
 ## Pipeline overview
 
@@ -37,24 +37,22 @@ The pipeline has three entry points for different use cases.
 
 ### Main mode — `workflow/Snakefile`
 
-Annotates arbitrary element lists (TSV or TSV.gz files) with chromatin signals. Suitable for any genomic region set: MPRA elements, finemo peaks, EnhancerLists, etc.
+Annotates arbitrary element lists (TSV or TSV.gz files) with chromatin signals. Suitable for any genomic region set specified by chromosome, start, and end location. 
 
 ```bash
-snakemake --snakefile workflow/Snakefile \
-  --configfile config/config_JT.yml \
-  --profile <slurm_profile> \
-  --use-conda
+pixi run snakemake --snakefile workflow/Snakefile \
+  --configfile config/config.yml \
+  --profile <slurm_profile>
 ```
 
-### CRISPR mode — `workflow/Snakefile_CRISPR`
+### CRISPR mode (deprecated) — `workflow/Snakefile_CRISPR`
 
 Annotates both ABC model EnhancerList predictions and CRISPR benchmark datasets simultaneously across multiple cell types. Also optionally annotates H3K27me3 peaks with H3K4me1 signal (for bivalent peak analysis).
 
 ```bash
-snakemake --snakefile workflow/Snakefile_CRISPR \
+pixi run snakemake --snakefile workflow/Snakefile_CRISPR \
   --configfile config/config_CRISPR.yml \
-  --profile <slurm_profile> \
-  --use-conda
+  --profile <slurm_profile>
 ```
 
 ## Configuration
@@ -146,20 +144,156 @@ K562:
 
 ## Input format
 
-Element files must be tab-separated with at minimum chromosome, start, and end columns. Column names are configured per-label via `chr_columns`, `start_columns`, `end_columns`. Files may be plain TSV or gzip-compressed.
+### Element files
 
-Set `cell_type_columns` to `NONE` for a given label if all elements in that file belong to one cell type (no filtering applied). Otherwise specify the column name containing cell type values — the pipeline will subset to rows matching each cell type in `element_cell_types`.
+Tab-separated (TSV or TSV.gz) with at minimum chromosome, start, and end columns. Column names are mapped via `chr_columns`, `start_columns`, `end_columns` in the config. All other columns are passed through unchanged to the output.
 
-## Output format
+If elements span multiple cell types in one file, set `cell_type_columns` to the column name containing cell type labels. The pipeline will subset rows per cell type. Set to `NONE` if all elements belong to a single cell type.
 
-One output TSV per element label at `{results_dir}/{label}.chromatin_annotations.tsv`. Contains all original columns plus appended annotation columns:
+### BAM and tagAlign files
 
-| Column pattern | Description |
+- **BAM** (ChIP-seq, DNase-seq): must be sorted (coordinate order) and indexed (`.bai` file alongside). Pre-filtered BAMs are preferred: for single-end data, ENCODE recommends filtering with flags `-F 780` and `MAPQ ≥ 30`; paired-end data is used as-is.
+- **tagAlign** (ATAC-seq): provide `.tagAlign.gz` files directly as the `reads` list. The pipeline auto-detects the format based on filename and uses the appropriate counting method. No BAM indexing is required.
+- Multiple files per assay are supported (replicates are counted jointly and averaged).
+
+```yaml
+K562:
+  processed_files:
+    ATAC:
+      reads: [/path/to/rep1.tagAlign.gz, /path/to/rep2.tagAlign.gz]
+```
+
+### Peak files
+
+- BED format, at minimum 3 columns (chr, start, end); additional columns are ignored
+- Plain BED or gzip-compressed (`.bed.gz`) are both accepted
+- Peaks are extended by `peak_ext_size[assay]` bp before overlap; use larger values (e.g., 175 bp) for broad marks (H3K27ac, H3K27me3, H3K4me1) and 0 for sharp TF peaks (CTCF, EP300)
+
+## Annotation types and output format
+
+One output TSV per element label at `{results_dir}/{label}.chromatin_annotations.tsv`, containing all original columns plus the annotation columns described below. An assay can appear in multiple lists (e.g., H3K27ac in both `RPM_assays` and `RPM_expanded_assays`).
+
+### Peak overlap — `peak_overlap_assays`
+
+Binary indicator of whether the element overlaps a ChIP-seq or ATAC-seq peak.
+
+- Output column: `{assay}_peak_overlap` (1 or 0)
+- Requires: a peak BED file for the assay (the `peaks` key under `processed_files`)
+- Peaks are extended by `peak_ext_size[assay]` bp (symmetric) before the overlap is tested
+- Use for: detecting whether an element falls within a called peak region (e.g., CTCF binding, H3K27me3 domains)
+
+### RPM at element coordinates — `RPM_assays`
+
+Read count (reads per million mapped reads) in the element's own coordinates, after optional trimming.
+
+- Output column: `{assay}.RPM`
+- Requires: one or more BAM files for the assay
+- `element_trim_size` shrinks the element by this many bp from each side before counting (set to 0 to use original coordinates)
+- Use for: quantifying signal at the element itself (e.g., H3K27ac, DNase/ATAC accessibility)
+
+### RPM at expanded coordinates — `RPM_expanded_assays`
+
+Same as RPM but at coordinates expanded by `element_ext_size` bp on each side (default: 150 bp).
+
+- Output column: `{assay}.RPM.expandedRegion`
+- Requires: BAM files
+- Captures signal in the neighborhood around the element, which is more robust for broad marks and for small elements
+- Use for: H3K27ac signal used in chromatin categorization (the expanded window smooths over peak boundaries)
+
+### Fold-change signal — `FC_assays`
+
+Average fold-change over input signal from a pre-computed bigWig, at element coordinates.
+
+- Output column: `{assay}_fc.RPM`
+- Requires: a bigWig file (local path or URL) under `fold_change_bws` in the cell-type config
+- The bigWig is downloaded at runtime if a URL is given
+- Use for: normalized signal tracks from ENCODE (fold-change over control), useful when BAMs are not available or when you want a signal that is already input-normalized
+
+## Chromatin categorization
+
+`workflow/scripts/chromatin_categories.R` provides helper functions to assign each annotated element to one of five mutually exclusive chromatin categories. This categorization was developed for the [DC-TAP paper](https://github.com/EngreitzLab/DC_TAP_Paper) and is adapted here for general use.
+
+### Categories
+
+| Category | Criteria |
 |---|---|
-| `{assay}_peak_overlap` | 1 if element overlaps a peak, 0 otherwise |
-| `{assay}.RPM` | Reads per million in element coordinates |
-| `{assay}.RPM.expandedRegion` | RPM in element ± `element_ext_size` bp |
-| `{assay}_fc.RPM` | Fold-change bigWig signal |
+| High H3K27ac | H3K27ac.RPM.expandedRegion ≥ 90th percentile (among H3K27ac-peak elements), or overlaps H3K27ac peak and is above that threshold |
+| H3K27ac | Overlaps H3K27ac peak, or H3K27ac.RPM.expandedRegion ≥ 50th percentile |
+| CTCF element | Overlaps CTCF peak; no appreciable H3K27ac |
+| H3K27me3 element | Overlaps H3K27me3 peak; no appreciable H3K27ac or CTCF |
+| No H3K27ac | None of the above |
+
+Thresholds are computed from the genome-wide distribution of candidate elements within each cell type, so they are data-driven and cell-type-specific.
+
+### Recommended workflow
+
+The categorization thresholds should be computed from a **genome-wide reference set** — typically all non-promoter candidate elements from the E2G universe — and then applied to whatever target set you want to categorize (e.g., CRISPR-tested pairs, E-G predictions). This ensures the quantile cutoffs reflect the full chromatin landscape rather than a biased subset.
+
+**Step 1: Annotate the genome-wide reference set**
+
+Run chrom-annotate on all E2G candidate elements (one TSV per cell type, or a combined multi-cell-type TSV) using the required assays listed below. This is typically the `EnhancerList` output from the ABC pipeline.
+
+**Step 2: Annotate your target set**
+
+Run chrom-annotate on the elements you want to categorize (e.g., CRISPR benchmark elements, E-G pairs). This can be the same run as step 1 if your target elements are a subset of the universe.
+
+**Step 3: Compute thresholds from the reference set**
+
+```r
+library(dplyr)
+library(data.table)
+source("workflow/scripts/chromatin_categories.R")
+
+# Load genome-wide annotations; add cell_type column if not present
+enh_universe <- fread("results/my_run/EnhancerList.chromatin_annotations.tsv") %>%
+    mutate(cell_type = "K562") %>%   # omit if cell_type column already exists
+    filter(class != "promoter") %>%  # exclude promoters before computing thresholds
+    replace(is.na(.), 0)
+
+thresholds <- get_category_thresholds(enh_universe, quantiles = c(0.5, 0.9))
+```
+
+**Step 4: Apply categories to the target set**
+
+```r
+pairs <- fread("results/my_run/crispr_pairs.chromatin_annotations.tsv") %>%
+    mutate(cell_type = "K562") %>%
+    replace(is.na(.), 0)
+
+pairs_cat <- categorize_elements(pairs, thresholds)
+table(pairs_cat$element_category)
+```
+
+For multiple cell types, bind rows from all cell types before calling `get_category_thresholds` — thresholds are computed and applied per cell type via the `cell_type` column.
+
+**Step 5: Plot**
+
+```r
+library(ggplot2)
+
+ggplot(pairs_cat, aes(x = element_category, fill = element_category)) +
+    geom_bar() +
+    scale_fill_manual(values = CATEGORY_COLORS) +
+    scale_x_discrete(limits = CATEGORY_ORDER) +
+    coord_flip() +
+    labs(x = NULL, y = "Number of elements") +
+    theme_classic() +
+    theme(legend.position = "none",
+          axis.text = element_text(color = "black"),
+          axis.ticks = element_line(color = "black"))
+```
+
+### Required chrom-annotate assays
+
+The following assays must be run to use the categorization functions:
+
+```yaml
+peak_overlap_assays: [H3K27ac, CTCF, H3K27me3]
+RPM_assays:          [H3K27ac, CTCF, DHS]   # use ATAC instead of DHS if providing tagAlign files
+RPM_expanded_assays: [H3K27ac, H3K27me3]
+```
+
+`get_category_thresholds` accepts either `DHS.RPM` or `ATAC.RPM` as the accessibility column — whichever is present in the input data.
 
 ## Dependencies and environment
 
@@ -180,7 +314,7 @@ pixi run snakemake --snakefile workflow/Snakefile \
 
 **Included packages:**
 - Python: `numpy`, `pandas`, `pysam`, `pyBigWig`, `pyranges`, `scipy`
-- R: `dplyr`, `tidyr`, `data.table`, `stringr`
+- R: `dplyr`, `tidyr`, `data.table`, `stringr`, `ggplot2`
 - CLI: `samtools` (1.23), `bedtools` (2.31), `csvtk`, `curl`
 - Workflow: `snakemake` (>=7)
 
