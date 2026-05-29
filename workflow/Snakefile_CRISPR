@@ -3,7 +3,6 @@ import json
 import os
 import pandas as pd
 
-conda: "mamba"
 
 # get useful vars from config
 RESULTS_DIR = config["results_dir"]
@@ -111,8 +110,7 @@ rule get_peak_overlap_predictions:
 	output:
 		interm_peaks = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "peaks.bed"), 
 		this_overlap = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "peak_overlap.txt")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -139,8 +137,7 @@ rule get_peak_overlap_crispr:
 	output:
 		interm_peaks = temp(os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "peaks.bed")), 
 		this_overlap = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "peak_overlap.txt")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -168,8 +165,7 @@ rule expand_candidate_elements_predictions:
 		chr_sizes = config["chr_sizes"]
 	output:
 		enh_expanded = os.path.join(SCRATCH_DIR, "{cell_type}", "EnhancerList.expanded.bed4")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -186,8 +182,7 @@ rule expand_candidate_elements_crispr:
 		chr_sizes = config["chr_sizes"]
 	output:
 		enh_expanded = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "tested_elements.expanded.bed4")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -207,8 +202,7 @@ rule count_reads_baseline_elements_predictions:
 		scratch_dir = SCRATCH_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "baseline_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -234,8 +228,7 @@ rule count_reads_original_elements_crispr:
 		scratch_dir = SCRATCH_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "original_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -261,8 +254,7 @@ rule count_reads_expanded_elements_predictions:
 		scratch_dir = SCRATCH_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "{cell_type}", "{assay}", "expanded_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -290,8 +282,7 @@ rule count_reads_expanded_elements_crispr:
 		scratch_dir = SCRATCH_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "CRISPR_benchmark", "{data_cat}", "{crispr_cell_type}", "{assay}", "expanded_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -376,8 +367,7 @@ rule annotate_H3K27me3_peaks:
 		H3K27me3_peaks_H3K4me1_counts = temp(os.path.join(SCRATCH_DIR, "{cell_type}", "H3K27me3_peaks_with_H3K4me1_counts.tsv")),
 		annotated_H3K27me3_peaks_unz = temp(os.path.join(SCRATCH_DIR, "{cell_type}", "annotated_H3K27me3_peaks.tsv")),
 		annotated_H3K27me3_peaks = os.path.join(RESULTS_DIR, "{cell_type}", "annotated_H3K27me3_peaks.tsv.gz")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:

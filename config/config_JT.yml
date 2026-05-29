@@ -1,0 +1,68 @@
+## input
+results_dir: /oak/stanford/groups/engreitz/Users/sheth/chrom-annotate/results/2025_1022_JT
+metadata_file: config/filtered_ENCODE_K562_ChIP_metadata.tsv
+peak_overlap_assays: [EP300, GABPA] # overlap with peaks
+RPM_assays: [EP300, GABPA, H3K27ac, DNase] # count reads from bam
+RPM_expanded_assays: [H3K27ac] # calculate RPM in elements with extended bounds
+FC_assays: [] # quantify activity from fold-change bw
+
+## files to annotate
+elements_to_annotate:
+  MPRA_EorP: /oak/stanford/groups/engreitz/Users/sheth/chrom-annotate/resources/allGoodMPRA_EorP_hg38.tsv
+
+element_cell_types:
+  MPRA_EorP: [K562]
+
+## other params
+scratch_dir: /scratch/users/shethm/ENCODE_downloads
+
+base_dir: /oak/stanford/groups/engreitz/Users/sheth/chrom-annotate
+chr_sizes: /oak/stanford/groups/engreitz/Users/sheth/hg38_resources/GRCh38.main.chrom.sizes
+
+## overlap params
+element_trim_size: 0 # base pairs to trim elements for for reducedRegion counts 
+element_ext_size: 150 # base pairs to extend elements by for expandedRegion counts
+peak_ext_size:
+  CTCF: 0
+  H3K27me3: 175
+  H3K4me1: 175
+
+## configure column names
+chr_columns:
+  MPRA_EorP: chr
+start_columns:
+  MPRA_EorP: start
+end_columns:
+  MPRA_EorP: end
+cell_type_columns:
+  MPRA_EorP: NONE
+
+
+## file paths and experiment accessions to chromatin signal data
+K562:
+  processed_files:
+    DNase:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF205FNC.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF860XAE.filtered.sorted.bam]
+    EP300:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF466WKF.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF163FSR.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF702XPO.bed.gz
+    H3K27ac:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF790GFL.se.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF817HMW.se.filtered.sorted.bam]
+    H3K27me3:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF549RYG.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF483EPA.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF351YGP.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF323WOT.bed.gz
+    H3K4me1:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF524BOJ.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF204MWI.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF665JSC.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF135ZLM.bed.gz
+    CTCF:
+      reads: [/oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF216XRV.filtered.sorted.bam, /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF216XRV.filtered.sorted.bam]
+      peaks: /oak/stanford/groups/engreitz/Users/sheth/Data/ENCODE/K562/ENCFF519CXF.bed.gz
+
+  fold_change_bws:
+
+  experiment_accessions:
+    GABPA: ENCSR000BLO
+    
+    
+
+  

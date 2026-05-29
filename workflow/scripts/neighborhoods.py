@@ -433,15 +433,15 @@ def double_sex_chrom_counts(output):
 def count_bam(
     bamfile, bed_file, output, genome_sizes, use_fast_count=True, verbose=True
 ):
-    reads = pysam.AlignmentFile(bamfile)
-    read_chrs = set(reads.references)
     bed_regions = pd.read_table(bed_file, header=None)
     bed_regions = bed_regions[bed_regions.columns[:3]]
     bed_regions.columns = "chr start end".split()
-    counts = [
-        (reads.count(row.chr, row.start, row.end) if (row.chr in read_chrs) else 0)
-        for _, row in bed_regions.iterrows()
-    ]
+    with pysam.AlignmentFile(bamfile) as reads:
+        read_chrs = set(reads.references)
+        counts = [
+            (reads.count(row.chr, row.start, row.end) if (row.chr in read_chrs) else 0)
+            for _, row in bed_regions.iterrows()
+        ]
     bed_regions["count"] = counts
     bed_regions.to_csv(output, header=None, index=None, sep="\t")
 

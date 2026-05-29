@@ -48,6 +48,9 @@ def get_metadata_for_rpm_assay(metadata_df, experiment_accession):
 	for rep, rt in runtype_dict.items():
 		file_row = meta[(meta['Output type'] == OUTPUT_KEY[rt]) & (meta['Technical replicate(s)'] == rep)]
 
+		if file_row.empty and rt == "single-ended":
+			file_row = meta[(meta['Output type'] == "alignments") & (meta['Technical replicate(s)'] == rep)]
+
 		if file_row.empty:
 			raise Exception(f"No BAM file found for replicate {rep} with run type {rt} for experiment {experiment_accession}.")
 
@@ -87,7 +90,7 @@ def get_metadata_for_peak_assay(metadata_df, experiment_accession):
 def process_encode_metadata(metadata_file, config, scratch_dir):
 	from itertools import chain
 
-	rpm_assays = config["RPM_assays"] + config["RPM_expanded_assays"]
+	rpm_assays = list(dict.fromkeys(config["RPM_assays"] + config["RPM_expanded_assays"]))
 	peak_assays = config["peak_overlap_assays"]
 	all_cell_types = list(set(chain.from_iterable(config["element_cell_types"].values())))
 
@@ -104,6 +107,8 @@ def process_encode_metadata(metadata_file, config, scratch_dir):
 		return s.lower().replace(" ", "_")
 
 	for biosample in all_cell_types:
+		if biosample not in config:
+			raise Exception(f"No config section found for cell type '{biosample}'. Add a '{biosample}:' section to the config file.")
 		this_processed_reads = {}
 		this_bam_accessions = {}
 		this_bam_runtypes = {}
@@ -160,12 +165,6 @@ def process_encode_metadata(metadata_file, config, scratch_dir):
 		processed_peaks_dict[biosample] = this_processed_peaks
 		peak_accessions_dict[biosample] = this_peak_accessions
 
-	return (
-		processed_bam_dict,
-		bam_accessions_dict,
-		bam_runtypes_dict,
-		processed_peaks_dict,
-		peak_accessions_dict
-	)
+	return processed_bam_dict, processed_peaks_dict
 
 

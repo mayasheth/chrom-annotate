@@ -11,7 +11,8 @@ output_file <- snakemake@output$elements_final
 
 # only one cell type
 if (snakemake@params$cell_type_col == "NONE") {
-    res <- fread(input_files[1], sep = "\t")
+    res <- fread(input_files[1], sep = "\t") %>%
+        select(-elementName)
 } else {
     res <- lapply(input_files, fread, sep = "\t") %>% 
         rbindlist() %>% 

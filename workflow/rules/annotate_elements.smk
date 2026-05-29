@@ -49,6 +49,7 @@ rule split_elements_by_cell_type:
 				eval "$READ_CMD" | sed 1d | gzip >> {output.element_subset}
 			else
 				col_number=$(eval "$READ_CMD" | head -n 1 | tr '\t' '\n' | nl -v 1 | grep -w "{params.ct_col}" | awk '{{print $1}}')
+				if [[ -z "$col_number" ]]; then echo "ERROR: column '{params.ct_col}' not found in header" >&2; exit 1; fi
 				eval "$READ_CMD" | awk -F'\t' -v col=$col_number '$col == "{wildcards.this_cell_type}"' | \
 					gzip >> {output.element_subset}
 			fi
@@ -59,7 +60,7 @@ rule split_elements_by_cell_type:
 				sed 1d | sort -k1,1 -k2,2n | uniq | \
 				awk -F'\t' 'BEGIN {{OFS="\t"}} {{print $0, $1 ":" $2 "-" $3}}' | \
 				awk -F'\t' 'BEGIN {{OFS="\t"}} {{ col1=$1; col2=$2 + {params.trim_size}; col3=$3 - {params.trim_size};
-					print $1, col2, col3, $4}}' > {output.elements_bed}
+					if (col3 > col2) print $1, col2, col3, $4}}' > {output.elements_bed}
     """
 
 
@@ -74,8 +75,7 @@ rule get_peak_overlaps:
 	output:
 		interm_peaks = os.path.join(SCRATCH_DIR,"elements", "{data_cat}", "{this_cell_type}", "{assay}", "peaks.bed"), 
 		this_overlap = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "peak_overlap.txt")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -100,8 +100,7 @@ rule expand_candidate_elements:
 		chr_sizes = config["chr_sizes"]
 	output:
 		enh_expanded = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "elements_expanded.bed4")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb = 32*1000,
 		runtime = 30
@@ -121,8 +120,7 @@ rule count_reads_baseline_elements_predictions:
 		scripts_dir = SCRIPTS_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "baseline_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -151,8 +149,7 @@ rule calculate_fold_change_signal_baseline_elements:
 	output: 
 		bw_download = temp(os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "fold_change_bw.bigWig")),
 		assay_fc = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "baseline_regions.fold_change.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
@@ -181,8 +178,7 @@ rule count_reads_expanded_elements:
 		scripts_dir = SCRIPTS_DIR
 	output: 
 		assay_counts = os.path.join(SCRATCH_DIR, "elements", "{data_cat}", "{this_cell_type}", "{assay}", "expanded_regions.RPM.tsv")
-	conda:
-		config["envs"]["ABC"]
+
 	resources:
 		mem_mb=32*1000
 	shell:
