@@ -9,7 +9,8 @@ libc = { family = "glibc", version = "2.17" }
 
 [dependencies]
 # workflow orchestration
-snakemake = ">=7"
+snakemake = ">=9"
+snakemake-executor-plugin-slurm = "*"
 python = ">=3.9"
 
 # python: run.neighborhoods.extended.py + neighborhoods.py + tools.py
@@ -26,6 +27,7 @@ r-base = "*"
 r-dplyr = "*"
 r-tidyr = "*"
 "r-data.table" = "*"
+"r-r.utils" = "*"
 r-stringr = "*"
 r-ggplot2 = "*"
 

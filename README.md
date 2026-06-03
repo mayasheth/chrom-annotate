@@ -42,7 +42,7 @@ Annotates arbitrary element lists (TSV or TSV.gz files) with chromatin signals. 
 ```bash
 pixi run snakemake --snakefile workflow/Snakefile \
   --configfile config/config.yml \
-  --profile <slurm_profile>
+  --profile profiles/slurm
 ```
 
 ### CRISPR mode (deprecated) — `workflow/Snakefile_CRISPR`
@@ -52,7 +52,7 @@ Annotates both ABC model EnhancerList predictions and CRISPR benchmark datasets 
 ```bash
 pixi run snakemake --snakefile workflow/Snakefile_CRISPR \
   --configfile config/config_CRISPR.yml \
-  --profile <slurm_profile>
+  --profile profiles/slurm
 ```
 
 ## Configuration
@@ -309,14 +309,16 @@ Run the pipeline within the pixi environment (omit `--use-conda`, since all deps
 ```bash
 pixi run snakemake --snakefile workflow/Snakefile \
   --configfile config/config_JT.yml \
-  --profile <slurm_profile>
+  --profile profiles/slurm
 ```
+
+Before running, update `profiles/slurm/config.yaml` with your own SLURM settings — at minimum set `slurm_account` to your group account (e.g. run `sacctmgr show user $USER withassoc format=account -n` to find it) and adjust `slurm_partition`, `mem_mb`, and `runtime` defaults as needed.
 
 **Included packages:**
 - Python: `numpy`, `pandas`, `pysam`, `pyBigWig`, `pyranges`, `scipy`
 - R: `dplyr`, `tidyr`, `data.table`, `stringr`, `ggplot2`
 - CLI: `samtools` (1.23), `bedtools` (2.31), `csvtk`, `curl`
-- Workflow: `snakemake` (>=7)
+- Workflow: `snakemake` (>=9), `snakemake-executor-plugin-slurm`
 
 Read counting reuses scripts from the [ABC model pipeline](https://github.com/broadinstitute/ABC-Enhancer-Gene-Prediction).
 
